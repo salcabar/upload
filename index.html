@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+    <script type="text/javascript" src="http://apps.bdimg.com/libs/require.js/2.1.9/require.min.js"></script>
+	<script type="text/javascript">
+        requirejs.config({
+            paths:{
+            	"jquery#1.8.1" : "http://y1.ifengimg.com/fe/jQuery/jquery-1.8.1.min",
+                "load-image" : "scripts/load-image",
+                "load-image-meta" : "scripts/load-image-meta",
+                "load-image-exif" : "scripts/load-image-exif",
+                "load-image-ios" : "scripts/load-image-ios",
+                "canvas-to-blob" : "scripts/canvas-to-blob",
+                "jquery.iframe-transport" : "scripts/jquery.iframe-transport",
+                "jquery.ui.widget" : "scripts/jquery.ui.widget",
+                "jquery.fileupload" : "scripts/jquery.fileupload",
+                "jquery.fileupload-process" : "scripts/jquery.fileupload-process",
+                "jquery.fileupload-image" : "scripts/jquery.fileupload-image",
+                "upload" : "scripts/upload"
+            },
+            waitSeconds: 20,shim: {}})
+        </script>
+</head>
+<body>
+	<input type="file" id="upload" name="blockContent" value="打开" multiple="multiple">
+	<script type="text/javascript">
+		require(['upload'], function  (upload) {
+			$('#upload').upload({
+				successCallback:function(resourceUrl){
+                    console.log(arguments);
+                },
+                errorCallback:function(msg){
+
+                }
+			})
+		})
+	</script>
+</body>
+</html>
