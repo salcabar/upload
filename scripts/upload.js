@@ -17,6 +17,7 @@
 }(function($) {
     'use strict';
 
+
     var pluginName = 'upload';
     var ImageLoopCount = 10;
 
@@ -24,9 +25,9 @@
         'sid': "6E124738B82DD0972225A8C396F992B8salcabar",
         'getId': "http://ugc.ifeng.com/index.php/user/getid",
         'upload': "http://transmission.ifeng.com/upload",
-        //upload:"http://10.32.28.95/upload",
         'rinfo': "http://ugc.ifeng.com/index.php/user/info",
         'imageServer': "http://d.ifengimg.com/",
+        'acceptFileTypes': /(\.|\/)(gif|jpe?g|png)$/i,
         successCallback:function(){},
         errorCallback:function(){},
         getUgcInfoErrorCallback:function(){}
@@ -49,51 +50,32 @@
         var _this = this;
         this.element.fileupload({
             dataType: 'json',
-            add: function(e, data) {
-                console.log(arguments)
-                var $this = $(this);
-                _this.getUgcTaskInfo(function(ugcInfo) {
-                        data.url = _this.settings.upload;
-                        var s = uuid(32, 16);
-                        data.formData = {
-                            "fileId": s + "_1",
-                            "appId": "testapp",
-                            "blockIndex": "1",
-                            "blockId": s,
-                            "blockCount": "1"
-                        };
-                        var callback = ugcInfo.callback;
-                        data.formData.successCb = callback;
-                        data.formData.failCb = callback;
-                        data.formData.storePath = ugcInfo.dir;
-                        data.formData.bizId = ugcInfo.rid;
-                        console.log(data)
-                    
-                        data.submit()
-                            .success(function (result, textStatus, jqXHR) {
-                                console.log("upload complete" , result);
-                                console.log(ugcInfo)
-                                _this.loopResource(ugcInfo , ImageLoopCount);
-                            })
-                            .error(function (jqXHR, textStatus, errorThrown) {
-                                console.log("upload error ",textStatus);
-                                $('.loader').hide();
-                                alert("上传文件错误，请重新上传！");
-                            })
-                            .complete(function (result, textStatus, jqXHR) {});
-                        
-                    });
-            },
-            progressall: function(e, data) {
+            autoUpload: false,
+            acceptFileTypes: _this.settings.acceptFileTypes
+        }).on('fileuploadadd', function (e, data) {
+            
+            _this.getUgcTaskInfo().then(function (ugcResult){
 
-            },
-            done: function(e, data) {}
-        });
+                //console.log("getUgcTaskInfo ok", ugcResult);
+
+                if(ugcResult.code == 0) {
+
+                    _this.putData(ugcResult.data,data);
+
+                } else {
+
+                    _this.settings.getUgcInfoErrorCallback.call(_this.element, ugcResult);
+
+                }
+                
+            },function (msg) {
+                console.log(msg);
+            });
+        })
     }
 
-    Upload.prototype.getUgcTaskInfo = function(callback) {
-        var _this = this;
-        $.ajax({
+    Upload.prototype.getUgcTaskInfo = function() {
+        return $.ajax({
             url: this.settings.getId,
             data: {
                 "sid": this.settings.sid,
@@ -111,21 +93,43 @@
                 "ctype": 0, //原创
                 "rt": "jsonp"
             },
-            dataType: 'jsonp',
+            dataType: 'jsonp'
             //jsonp: "callbackparam",//传递给请求处理程序或页面的，用以获得jsonp回调函数名的参数名(默认为:callback)
-            jsonpCallback: "ugcCallback" //自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名
+            //jsonpCallback: "ugcCallback" //自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名
         })
-        .done(function(ugcResult) {
-            console.log("getUgcTaskInfo ok", ugcResult);
-            if (ugcResult.code == 0) {
-                callback(ugcResult.data);
-            } else {
-                _this.settings.getUgcInfoErrorCallback.call(_this.element,msg);
-            }
-        })
-        .fail(function(msg) {
-            console.log(msg);
-        })
+    }
+
+    Upload.prototype.putData = function (ugcInfo,data) {
+        var _this = this;
+        data.url = _this.settings.upload;
+        var s = uuid(32, 16);
+        data.formData = {
+            "fileId": s + "_1",
+            "appId": "testapp",
+            "blockIndex": "1",
+            "blockId": s,
+            "blockCount": "1"
+        };
+        var callback = ugcInfo.callback;
+        data.formData.successCb = callback;
+        data.formData.failCb = callback;
+        data.formData.storePath = ugcInfo.dir;
+        data.formData.bizId = ugcInfo.rid;
+        // $.blueimp.fileupload.prototype.options.add.call(that, e, data);
+    
+        data.submit()
+            .success(function (result, textStatus, jqXHR) {
+                //console.log("upload complete" , result);
+                _this.loopResource(ugcInfo , ImageLoopCount);
+            })
+            .error(function (jqXHR, textStatus, errorThrown) {
+                console.log("upload error ",textStatus);
+                alert("上传文件错误，请重新上传！");
+            })
+            .done(function (result, textStatus, jqXHR) {
+                console.log(result)
+            });
+        
     }
 
     Upload.prototype.loopResource = function (ugcInfo , loopcount){
@@ -147,14 +151,14 @@
                     ,"rt":"jsonp"
                 },
                 dataType: 'jsonp',
-                jsonpCallback:"loopImageCallback",//自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名
+                //jsonpCallback:"loopImageCallback",//自定义的jsonp回调函数名称，默认为jQuery自动生成的随机函数名
                 success : function(result){
-                    console.log("loopImage ok" , result);
+                    //console.log("loopImage ok" , result);
                     if(result.code == 0){
                         if(result.data.status != 0){
                             _this.loopResource(ugcInfo,loopcount);
                         }else{
-                            console.log(result)
+                            //console.log(result)
                             var url = _this.settings.imageServer + "q_10/" +  result.data.url.replace(/http[s]?:\/\// , '');
                             
                             _this.settings.successCallback.call(_this.element,url,rid,result);
